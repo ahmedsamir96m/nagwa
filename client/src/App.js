@@ -1,7 +1,11 @@
-import React, { Children, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import RankScreen from "./components/RankScreen";
+import PracticeScreen from "./components/PracticeScreen";
+import ProgressBar from "./components/ProgressBar";
+import { fetchWords } from "./helpers/fetchWords";
 
 const App = () => {
-  const url = "http://localhost:3001/";
+  const url = process.env.REACT_APP_BASE_URL;
   const [words, setWords] = useState([]);
   const [answers, setAnswers] = useState([
     "verb",
@@ -9,80 +13,47 @@ const App = () => {
     "noun",
     "adjective",
   ]);
-  const [score, setScore] = useState(0);
+
+  let [score, setScore] = useState(0);
   const [showFinalResult, setShowFinalResult] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState({});
+  const [currentWord, setCurrentWord] = useState({});
+
+  // I Fetched words in here instead of practice screen because i'm passing the words array to RankScreen
+  useEffect(() => {
+    fetchWords(url, setWords);
+  }, [url]);
 
   useEffect(() => {
-    try {
-      fetch(`${url}words`)
-        .then((res) => {
-          return res.json();
-        })
-        .then((data) => {
-          setWords(data);
-        });
-    } catch (error) {
-      console.log(error);
-    }
-  }, []);
-
-  useEffect(() => {
-    setCurrentQuestion(words[0]);
+    setCurrentWord(words[0]);
   }, [words]);
-
-  const sendAnswers = async (data = {}) => {
-    const response = await fetch(`${url}ranks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    return response;
-  };
 
   return (
     <section>
       <h1>Nagwa Quiz</h1>
+      
+      <div>
+        <h2>Progress</h2>
+        <ProgressBar
+          width={((words?.indexOf(currentWord) + 1) / words?.length) * 100}
+        />
+      </div>
+
       <div id="words">
         {/* <button onClick={() => sendAnswers({ answer: 50 })}>
           Submit
         </button> */}
         {!showFinalResult ? (
-          <div>
-            <h2>Question 1 of 5</h2>
-            <h3>Chose the correct answer of the following</h3>
-
-            {/* Question Card */}
-            {currentQuestion?.word}
-
-            {/* Answers */}
-            <form>
-              <ul>
-                {answers?.map((answer, index) => (
-                  <li key={index}>
-                    <input
-                      type="radio"
-                      name="answer"
-                      id={answer}
-                      value={answer}
-                      onClick={(e) =>
-                        console.log(e.target.value === currentQuestion.pos)
-                      }
-                    />
-                    <label htmlFor={answer}>{answer}</label>
-                  </li>
-                ))}
-              </ul>
-            </form>
-          </div>
+          <PracticeScreen
+            words={words}
+            currentWord={currentWord}
+            setCurrentWord={setCurrentWord}
+            answers={answers}
+            score={score}
+            setScore={setScore}
+            setShowFinalResult={setShowFinalResult}
+          />
         ) : (
-          <div>
-            <h2>Final Result</h2>
-            <h3>1 out of 5 correct</h3>
-            <button>Restart </button>
-          </div>
+          <RankScreen score={score} words={words} />
         )}
       </div>
     </section>
